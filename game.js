@@ -388,6 +388,158 @@ const STORYLINES_DEFECT = [
   }
 ];
 
+// ── NARRATIVE ARC TEMPLATES ───────────────────────────────
+
+const ARC_TEMPLATES = [
+  {
+    id: 'double_game',
+    title: 'The Double Game',
+    setup(org) {
+      const pool = org.roster.filter(c => c.role === 'capo' && !isCharUnavailable(c));
+      if (!pool.length) return null;
+      const char = randFrom(pool);
+      const rival = randFrom(gs.rivals);
+      return { charId: char.id, charName: char.name, charRole: char.role,
+               rivalId: rival.id, rivalFamilyName: rival.familyName };
+    },
+    phase0(ctx) {
+      return `${ctx.charName} came to you privately last week with news: a man from the ${ctx.rivalFamilyName} family approached him at a card game and made overtures about payment for "general information." He turned nothing over and brought it directly to you. The loyalty he has shown is noteworthy — but it is also an opportunity. Now you must decide how to respond.`;
+    },
+    choices: [
+      { label: 'Run a Double Game', desc: 'Authorize him to play along and feed false intelligence, keeping the rival off-balance.' },
+      { label: 'Shut It Down', desc: 'Have him refuse the contact cleanly. Safe, but a missed opportunity.' },
+      { label: 'Send a Warning', desc: 'Use the contact to deliver a direct message to the rival — approach our men again at your peril.' }
+    ],
+    phase1: [
+      {
+        positive: true,
+        narrative: (ctx) => `The double game paid off. ${ctx.charName} fed the ${ctx.rivalFamilyName} carefully curated misinformation for three weeks before their contact went silent — they either burned him or stopped believing him. Your plans remained intact while theirs ran into walls of their own making. ${ctx.charName}'s loyalty is beyond question now, and he earned a measure of standing in the organization for handling it without a single mistake.`,
+        apply(ctx, org) { boostLoyaltyById(ctx.charId, org, 8); modifyRelationship(org.id, ctx.rivalId, 3, `Double game run against ${ctx.rivalFamilyName}`); }
+      },
+      {
+        positive: null,
+        narrative: (ctx) => `${ctx.charName} refused the contact cleanly and had no further communication with the ${ctx.rivalFamilyName}. The cautious play — nothing was gained, but nothing was lost. The family's trust in him is intact, and if the rival was fishing, they got nothing worth keeping. The matter is closed.`,
+        apply(ctx, org) { boostLoyaltyById(ctx.charId, org, 4); }
+      },
+      {
+        positive: null,
+        narrative: (ctx) => `The warning reached the right ears in the ${ctx.rivalFamilyName} family. There has been no further contact since. Whether they received it as respect or a provocation remains unclear, but they have not pressed the matter. ${ctx.charName} delivered the message without incident. Relations with the ${ctx.rivalFamilyName} have cooled, but the boundary has been clearly drawn.`,
+        apply(ctx, org) { boostLoyaltyById(ctx.charId, org, 5); modifyRelationship(org.id, ctx.rivalId, -10, `Warning delivered via attempted double-game contact`); }
+      }
+    ]
+  },
+  {
+    id: 'the_ambitious_one',
+    title: 'The Ambitious One',
+    setup(org) {
+      const pool = org.roster.filter(c =>
+        (c.role === 'underboss' || c.role === 'capo') && !isCharUnavailable(c));
+      if (!pool.length) return null;
+      const char = randFrom(pool);
+      return { charId: char.id, charName: char.name, charRole: char.role };
+    },
+    phase0(ctx) {
+      return `Three of your captains have separately mentioned that ${ctx.charName} has been holding informal gatherings — late-night meetings at a social club on Mulberry Street, dinners where certain men are invited and others are not. None of it is openly disloyal. But he has not mentioned any of it to you. Either he is building something, or he is simply careless. Either reading demands a response.`;
+    },
+    choices: [
+      { label: 'Promote and Bind', desc: 'A promotion and salary increase signals trust and locks his ambition to yours.' },
+      { label: 'Direct Conversation', desc: 'Meet with him privately, acknowledge what you\'ve heard, and let him explain himself.' },
+      { label: 'Watch and Wait', desc: 'Say nothing. Have someone track his movements and report back next quarter.' }
+    ],
+    phase1: [
+      {
+        positive: true,
+        narrative: (ctx) => `The promotion landed well. ${ctx.charName} accepted it with visible gratitude and has not held another unsanctioned meeting since. Whether the ambition is truly satisfied or merely redirected is a question for a later season — but right now he is working hard, his men respect the new title, and the organization is more stable for the decision. It cost something in salary but purchased something worth more in loyalty.`,
+        apply(ctx, org) {
+          boostLoyaltyById(ctx.charId, org, 12);
+          org.cash = Math.max(0, org.cash - 1500);
+          const c = org.roster.find(r => r.id === ctx.charId);
+          if (c) c.salary = Math.round(c.salary * 1.2);
+        }
+      },
+      {
+        positive: null,
+        narrative: (ctx) => `The meeting was frank. ${ctx.charName} acknowledged the gatherings without apology — he said he was building relationships within the family, not around you. You read him for twenty minutes and concluded he was telling the truth, or a convincing version of it. You left him with a single clear instruction: anything involving this family comes through you first. He agreed. The question of his loyalty remains open, but it is managed.`,
+        apply(ctx, org) { boostLoyaltyById(ctx.charId, org, 5); }
+      },
+      {
+        positive: null,
+        narrative: (ctx) => `The surveillance confirmed what you suspected — ambitious positioning, not treason. ${ctx.charName} has been testing loyalties, seeing who would follow him if asked. He does not know you know. You hold an advantage now. His standing within the organization is intact, but his loyalty has quietly eroded while you watched and said nothing.`,
+        apply(ctx, org) { boostLoyaltyById(ctx.charId, org, -8); }
+      }
+    ]
+  },
+  {
+    id: 'outside_pressure',
+    title: 'The Outside Pressure',
+    setup(org) {
+      if (!org.businesses.length) return null;
+      const biz = randFrom(org.businesses);
+      return { bizId: biz.id, bizName: biz.name, bizIncomeSnapshot: biz.income };
+    },
+    phase0(ctx) {
+      return `Federal agents have been seen asking questions around ${ctx.bizName} — talking to delivery boys, watching from a parked car across the street, sitting in the diner opposite and not drinking their coffee. Nothing has been seized or served yet, but the attention is real and growing. They are either building a case or fishing. You have a quarter to respond before this becomes something you cannot manage quietly.`;
+    },
+    choices: [
+      { label: 'Go Dark', desc: 'Shut down operations temporarily and move the books. Lose income, but give them nothing to find.' },
+      { label: 'Pay for Silence', desc: 'Get a message to the field agent running the surveillance. Expensive, but it has worked before.' },
+      { label: 'Retain Counsel', desc: 'Put a legitimate attorney on retainer. Slower and cleaner — no criminal exposure.' }
+    ],
+    phase1: [
+      {
+        positive: null,
+        narrative: (ctx) => `${ctx.bizName} went quiet for most of the quarter. The agents had nothing to observe and redirected their attention elsewhere by the second month. The lost income was real, but the organization took no legal damage and the books are clean. When operations resumed, the neighborhood had barely noticed the pause. Sometimes the safest move is to simply not be there when someone is looking.`,
+        apply(ctx, org) { org.cash -= Math.round(ctx.bizIncomeSnapshot * 0.7); }
+      },
+      {
+        positive: true,
+        narrative: (ctx) => `The message reached the right desk. Surveillance on ${ctx.bizName} tapered off within two weeks and the federal file was quietly deprioritized. It cost significantly, but there were no arrests, no subpoenas, no testimony. The agent will need to be maintained going forward, but for now the heat is entirely off and business continues as normal.`,
+        apply(_ctx, org) { org.cash -= 4000; }
+      },
+      {
+        positive: null,
+        narrative: (ctx) => `The attorney filed the appropriate paperwork and made the appropriate calls. The federal inquiry into ${ctx.bizName} ran into a wall of legitimate documentation and moved on to easier targets. Legal fees were substantial, but no one went to prison and the business continues to operate openly. It was the clean play — slower and more expensive, but it left no exposure.`,
+        apply(_ctx, org) { org.cash -= 2500; }
+      }
+    ]
+  },
+  {
+    id: 'the_rumor',
+    title: 'The Rumor',
+    setup(org) {
+      const pool = org.roster.filter(c => c.role === 'soldier' && !isCharUnavailable(c));
+      if (!pool.length) return null;
+      const char = randFrom(pool);
+      return { charId: char.id, charName: char.name, charRole: char.role };
+    },
+    phase0(ctx) {
+      return `Word has reached you through two separate sources that ${ctx.charName} has been skimming — taking a cut off the top before reporting his collections. The amounts are individually small, but the pattern is clear to anyone looking at the books carefully. Either he believes you are not watching, or he has grown brazen enough not to care. This cannot be left unaddressed without sending the wrong message to everyone else in the organization.`;
+    },
+    choices: [
+      { label: 'Confront Directly', desc: 'Sit him down and put the evidence in front of him. What happens next depends on how he answers.' },
+      { label: 'Set a Trap', desc: 'Mark the money and let him steal again. Catch him with undeniable proof before you move.' },
+      { label: 'Dismiss Quietly', desc: 'No confrontation. He is cut loose with a warning that word will travel if he causes problems.' }
+    ],
+    phase1: [
+      {
+        positive: null,
+        narrative: (ctx) => `${ctx.charName} denied it for three minutes, then stopped. He made the argument that he had been underpaid for the work he did and that the skimming was his own private accounting correction. You told him what a correction from this family actually looks like. He returned what he took, plus a penalty, and was reassigned to work with less access and more supervision. He stays because leaving is more dangerous than staying — not because he has any loyalty left.`,
+        apply(ctx, org) { org.cash += 500; boostLoyaltyById(ctx.charId, org, -15); }
+      },
+      {
+        positive: true,
+        narrative: (ctx) => `The marked bills worked exactly as intended. ${ctx.charName} was caught without any room for argument — no alternative explanation, no ambiguity. He understood immediately what that meant. The conversation was short. He was stripped of his responsibilities and placed under a capo who does not trust him. The money was recovered. The message to the rest of the organization was sent without a single word being spoken in public.`,
+        apply(ctx, org) { org.cash += 300; boostLoyaltyById(ctx.charId, org, -6); }
+      },
+      {
+        positive: null,
+        narrative: (ctx) => `${ctx.charName} was let go without ceremony. The explanation given to his former colleagues was deliberately vague — reassignment, a change in plans, nothing that invites questions. He left without incident. Whether he stays quiet is a calculation he is now making on his own time. The family absorbed the loss of a soldier and moved on. It was the path of least friction, if not the most satisfying resolution.`,
+        apply(ctx, org) { removeFromOrg(org, ctx.charId); uiState.expanded.delete(ctx.charId); }
+      }
+    ]
+  }
+];
+
 // ── UTILITIES ─────────────────────────────────────────────
 
 let _uid = 0;
@@ -567,9 +719,12 @@ function initGame(playerFamilyName = null, playerDonName = null) {
     log: [], currentEvents: [], rivalUpdates: [],
     actionCap: 0.01, bonusTurn: false, gameOver: null
   };
-  gs.politicians    = genPoliticians(allOrgs());
-  gs.playerIntel    = {};   // bizId -> { defenses, profitPerQtr, turnGathered }
-  gs.relationships  = initRelationships(allOrgs());
+  gs.politicians       = genPoliticians(allOrgs());
+  gs.playerIntel       = {};
+  gs.relationships     = initRelationships(allOrgs());
+  gs.pendingArcOutcomes = [];
+  gs.lastArcId         = null;
+  gs.donComment        = '';
   calcInfluence();
   gs.currentEvents = generateEvents();
 }
@@ -666,7 +821,11 @@ function imprison(c, turns) {
   c.prisonUntilTurn = gs.turnCount + turns;
 }
 function boostLoyalty(c, amount) {
-  if (c) c.loyalty = Math.min(100, c.loyalty + amount);
+  if (c) c.loyalty = Math.max(0, Math.min(100, c.loyalty + amount));
+}
+function boostLoyaltyById(charId, org, amount) {
+  const c = org.roster.find(r => r.id === charId);
+  boostLoyalty(c, amount);
 }
 // Loyalty gives ±5% bonus to other stats: loyalty 50 = ×1.0, 0 = ×0.95, 100 = ×1.05
 function effectiveStat(char, stat) {
@@ -830,7 +989,7 @@ function processStatProgression() {
   });
 }
 
-function generateStorylineEvent() {
+function generateRegularStoryline() {
   const roll = Math.random();
   let pool;
   if      (roll < 0.42) pool = STORYLINES_POSITIVE;
@@ -846,11 +1005,79 @@ function generateStorylineEvent() {
         outcome: null };
     }
   }
-  // Fallback — should rarely hit
   return { id: uid(), type: 'storyline', state: 'pending',
     title: 'Quiet Quarter',
     text: 'Nothing of consequence this quarter. The streets are watching.',
     positive: null, outcome: null };
+}
+
+function tryStartArcEvent() {
+  if (Math.random() >= 0.28) return null;
+  const org = gs.player;
+  const available = ARC_TEMPLATES.filter(t => t.id !== gs.lastArcId);
+  const template  = randFrom(available.length ? available : ARC_TEMPLATES);
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const ctx = template.setup(org);
+    if (!ctx) continue;
+    return {
+      id: uid(), type: 'arc', arcPhase: 0,
+      arcTemplateId: template.id,
+      title: template.title,
+      state: 'pending',
+      ctx,
+      narrative: template.phase0(ctx),
+      choices: template.choices,
+      choiceIdx: null,
+      outcome: null
+    };
+  }
+  return null;
+}
+
+function generateStorylineOrArcEvent() {
+  const arcEv = tryStartArcEvent();
+  return arcEv ?? generateRegularStoryline();
+}
+
+function generateArcOutcomeEvent(pending) {
+  const template = ARC_TEMPLATES.find(t => t.id === pending.arcTemplateId);
+  if (!template) return null;
+  const outcome = template.phase1[pending.choiceIdx];
+  if (!outcome) return null;
+  const org = gs.player;
+  if (outcome.apply) outcome.apply(pending.ctx, org);
+  const narrativeText = outcome.narrative(pending.ctx);
+  return {
+    id: uid(), type: 'arc', arcPhase: 1,
+    arcTemplateId: pending.arcTemplateId,
+    title: `${template.title} — Aftermath`,
+    state: 'pending',
+    ctx: pending.ctx,
+    choiceIdx: pending.choiceIdx,
+    narrative: narrativeText,
+    choices: null,
+    outcome: { text: narrativeText, positive: outcome.positive }
+  };
+}
+
+function resolveArcChoice(eventId, choiceIdx) {
+  const ev = gs.currentEvents.find(e => e.id === eventId);
+  if (!ev || ev.type !== 'arc' || ev.arcPhase !== 0 || ev.state !== 'pending') return;
+  ev.choiceIdx = choiceIdx;
+  ev.state     = 'resolved';
+  ev.outcome   = { text: `You chose: "${ev.choices[choiceIdx].label}". The consequences will become clear next quarter.`, positive: null };
+  gs.lastArcId = ev.arcTemplateId;
+  gs.pendingArcOutcomes.push({ arcTemplateId: ev.arcTemplateId, choiceIdx, ctx: ev.ctx });
+  addLog(`Arc — ${ev.title}: chose "${ev.choices[choiceIdx].label}"`);
+  renderPreserveScroll();
+}
+
+function acknowledgeArcOutcome(eventId) {
+  const ev = gs.currentEvents.find(e => e.id === eventId);
+  if (!ev || ev.type !== 'arc' || ev.arcPhase !== 1 || ev.state !== 'pending') return;
+  ev.state = 'resolved';
+  addLog(`Arc outcome — ${ev.title}`);
+  renderPreserveScroll();
 }
 
 function acknowledgeStoryline(eventId) {
@@ -1004,17 +1231,129 @@ function generateRivalUpdate(rival) {
   return randFrom(pool);
 }
 
+function generateDonComment() {
+  const org  = gs.player;
+  const orgs = allOrgs().sort((a, b) => b.influence - a.influence);
+  const rank = orgs.findIndex(o => o.isPlayer) + 1;
+  const imprisoned = org.roster.filter(c => isImprisoned(c));
+  const hostile    = gs.rivals.filter(r => getRelationship(org.id, r.id) < -30);
+
+  const pool = [];
+
+  if (rank === 1) pool.push(
+    'We sit at the top of this city. Every move we make should ensure we stay there.',
+    'We lead the pack. Don\'t let comfort make us slow.',
+    'The other families are watching us now. Good — let them watch and wonder.'
+  );
+  else if (rank === 4) pool.push(
+    'We are at the bottom and everyone knows it. That changes this quarter or heads will roll.',
+    'I won\'t pretend the situation isn\'t desperate. It is. We fix it or we don\'t survive.',
+    'Last place is a temporary condition. I intend to make it very temporary.'
+  );
+  else pool.push(
+    'Middle of the pack. Not where we belong. Not where we\'ll stay.',
+    'There\'s room above us. The men holding those positions are not smarter than us — they are simply further ahead. For now.',
+    'We are neither first nor last. That is a position for a family without ambition. It isn\'t ours.'
+  );
+
+  if (imprisoned.length > 0) pool.push(
+    `With ${imprisoned.length === 1 ? imprisoned[0].name : imprisoned.length + ' men'} behind bars, we operate short-handed. That is a wound we need to manage.`,
+    `The loss of ${imprisoned[0].name} to the federal pen costs us more than his salary. We work around it and we don\'t complain about it out loud.`
+  );
+
+  if (hostile.length > 0) pool.push(
+    `The ${hostile[0].familyName} have made their hostility plain. We don\'t blink first, but we don\'t invite disaster either.`,
+    `${hostile.length > 1 ? hostile.length + ' families have' : 'The ' + hostile[0].familyName + ' has'} decided we are enemies. Fine. We have survived worse opinions than theirs.`
+  );
+
+  if (org.cash < 5000) pool.push(
+    'The treasury is nearly dry. Every dollar spent this quarter must earn two back.',
+    'Cash is short. We need a return this quarter or we start making decisions we\'d rather avoid.'
+  );
+  else if (org.cash > 100000) pool.push(
+    'The cash position is strong. A well-funded family has options a desperate one doesn\'t.',
+    'We have reserves. Use them wisely — money represents time, and time in this city is influence.'
+  );
+
+  return randFrom(pool);
+}
+
+function boroughDominance() {
+  const names = ['Manhattan', 'Brooklyn', 'The Bronx', 'Queens'];
+  const orgs  = allOrgs();
+  const result = {};
+  names.forEach(bName => {
+    const pols = gs.politicians.filter(p => p.borough === bName);
+    const totals = {};
+    orgs.forEach(o => {
+      totals[String(o.id)] = pols.reduce((sum, p) => sum + (p.control[String(o.id)] ?? 0), 0);
+    });
+    const winnerId = Object.keys(totals).reduce((a, b) => totals[a] > totals[b] ? a : b);
+    const winner   = orgs.find(o => String(o.id) === winnerId);
+    result[bName]  = winner ?? null;
+  });
+  return result;
+}
+
+function renderBoroughMap() {
+  const dom  = boroughDominance();
+  const orgs = allOrgs();
+  const col  = (bName) => {
+    const w = dom[bName];
+    return w ? FAMILY_COLORS[w.colorIndex] : '#555';
+  };
+  return `<div class="borough-map-wrap">
+    <svg class="borough-map-svg" viewBox="0 0 220 170" xmlns="http://www.w3.org/2000/svg">
+      <polygon class="boro-poly" points="70,8 132,5 127,52 80,56 68,28"
+        fill="${col('The Bronx')}33" stroke="${col('The Bronx')}" stroke-width="1.5"/>
+      <text class="boro-label" x="100" y="34">The Bronx</text>
+      <polygon class="boro-poly" points="36,30 56,24 62,132 42,136 28,80"
+        fill="${col('Manhattan')}33" stroke="${col('Manhattan')}" stroke-width="1.5"/>
+      <text class="boro-label" x="44" y="81" text-anchor="middle"
+        transform="rotate(-80 44 81)">Manhattan</text>
+      <polygon class="boro-poly" points="92,52 150,46 156,118 94,124"
+        fill="${col('Queens')}33" stroke="${col('Queens')}" stroke-width="1.5"/>
+      <text class="boro-label" x="124" y="88">Queens</text>
+      <polygon class="boro-poly" points="46,122 106,118 110,155 44,158"
+        fill="${col('Brooklyn')}33" stroke="${col('Brooklyn')}" stroke-width="1.5"/>
+      <text class="boro-label" x="78" y="142">Brooklyn</text>
+    </svg>
+    <div class="boro-legend">
+      ${orgs.map(o => `<span class="boro-legend-item">
+        <span class="boro-legend-dot" style="background:${FAMILY_COLORS[o.colorIndex]}"></span>
+        <span class="${o.isPlayer ? 'boro-legend-player' : ''}">${o.familyName}</span>
+      </span>`).join('')}
+    </div>
+  </div>`;
+}
+
 function generateEvents() {
   processStatProgression();
-  // Every 4th turn the action influence cap doubles (bonus quarter)
-  gs.actionCap  = gs.turnCount % 4 === 0 ? 0.02 : 0.01;
-  gs.bonusTurn  = gs.turnCount % 4 === 0;
+  gs.actionCap    = gs.turnCount % 4 === 0 ? 0.02 : 0.01;
+  gs.bonusTurn    = gs.turnCount % 4 === 0;
+  gs.donComment   = generateDonComment();
   gs.rivalUpdates = gs.rivals.map(r => ({
     id: r.id, familyName: r.familyName, color: FAMILY_COLORS[r.colorIndex],
     text: generateRivalUpdate(r)
   }));
-  return [generateStorylineEvent(), generateRecruitEvent(), generateFinanceEvent(),
-          generatePoliticalEvent(), generateConflictEvent()];
+
+  const events = [];
+
+  // Process any arc outcomes carried over from last turn
+  if (gs.pendingArcOutcomes.length) {
+    gs.pendingArcOutcomes.forEach(p => {
+      const ev = generateArcOutcomeEvent(p);
+      if (ev) events.push(ev);
+    });
+    gs.pendingArcOutcomes = [];
+  }
+
+  events.push(generateStorylineOrArcEvent());
+  events.push(generateRecruitEvent());
+  events.push(generateFinanceEvent());
+  events.push(generatePoliticalEvent());
+  events.push(generateConflictEvent());
+  return events;
 }
 
 function generateRecruitEvent() {
@@ -2289,7 +2628,7 @@ function renderRivalModal() {
 
 const CARD_TYPE_LABEL = {
   storyline:'STORYLINE', recruit:'RECRUITMENT', finance:'FINANCIAL',
-  political:'POLITICAL', conflict:'CONFLICT'
+  political:'POLITICAL', conflict:'CONFLICT', arc:'NARRATIVE ARC'
 };
 
 function renderEventCard(ev) {
@@ -2300,19 +2639,43 @@ function renderEventCard(ev) {
     recruit:   'Choose a Recruit',
     finance:   ev.name   || 'Financial Opportunity',
     political: ev.politicianName || 'Political Opportunity',
-    conflict:  ev.rivalName      || 'Conflict'
+    conflict:  ev.rivalName      || 'Conflict',
+    arc:       ev.title  || 'Narrative Arc'
   };
   const bodies = { storyline: renderStorylineBody,
                    recruit: renderRecruitBody, finance: renderFinanceBody,
-                   political: renderPoliticalBody, conflict: renderConflictBody };
+                   political: renderPoliticalBody, conflict: renderConflictBody,
+                   arc: renderArcBody };
   return `<div class="event-card ${ev.state}${negCls}">
     <div class="card-header">
-      <span class="card-type-tag card-type-${ev.type}">${CARD_TYPE_LABEL[ev.type]}</span>
-      <span class="card-title">${titles[ev.type]}</span>
+      <span class="card-type-tag card-type-${ev.type}">${CARD_TYPE_LABEL[ev.type] ?? ev.type.toUpperCase()}</span>
+      <span class="card-title">${titles[ev.type] ?? ''}</span>
       ${ev.state === 'resolved' ? '<span class="card-check">✓</span>' : ''}
       ${ev.state === 'skipped'  ? '<span class="card-skip">—</span>'  : ''}
     </div>
-    ${pending ? bodies[ev.type](ev) : resolvedBodyHtml(ev)}
+    ${pending ? (bodies[ev.type] ?? (() => ''))(ev) : resolvedBodyHtml(ev)}
+  </div>`;
+}
+
+function renderArcBody(ev) {
+  if (ev.arcPhase === 0) {
+    return `<div class="card-body">
+      <div class="arc-narrative arc-neu">${ev.narrative}</div>
+      <div class="arc-choices">
+        ${ev.choices.map((c, i) => `
+          <button class="btn-arc-choice" onclick="resolveArcChoice(${ev.id}, ${i})">
+            <span class="arc-choice-label">${c.label}</span>
+            <span class="arc-choice-desc">${c.desc}</span>
+          </button>`).join('')}
+      </div>
+    </div>`;
+  }
+  const cls = ev.outcome?.positive === true ? 'arc-pos' : ev.outcome?.positive === false ? 'arc-neg' : 'arc-neu';
+  return `<div class="card-body">
+    <div class="arc-narrative ${cls}">${ev.narrative}</div>
+    <div class="card-actions">
+      <button class="btn-card-neu" onclick="acknowledgeArcOutcome(${ev.id})">Acknowledge</button>
+    </div>
   </div>`;
 }
 
@@ -2656,6 +3019,11 @@ function render() {
     <main class="panel panel-events">
       <div class="panel-head">Turn Events &mdash; ${quarterLabel(gs.quarter, gs.year)}${gs.bonusTurn ? ' <span class="bonus-badge">★ BONUS QUARTER</span>' : ''}</div>
       <div class="panel-body">
+        ${gs.donComment ? `
+        <div class="don-voice">
+          <div class="don-voice-avatar">${DON_AVATAR_SVG}</div>
+          <div class="don-voice-quote">"${gs.donComment}"</div>
+        </div>` : ''}
         ${gs.rivalUpdates.length ? `
         <div class="intel-block">
           <div class="intel-head">Intelligence</div>
@@ -2697,6 +3065,11 @@ function render() {
             </div>`;
           }).join('')}
           <div class="win-note">First to 50% wins &nbsp;·&nbsp; <span style="color:var(--text-muted);font-size:10px">Click a family to view profile</span></div>
+        </div>
+
+        <div class="fin-block">
+          <div class="fin-head">The Five Boroughs</div>
+          ${renderBoroughMap()}
         </div>
 
         <div class="fin-block">
