@@ -1744,3 +1744,12 @@ select.assign-select:focus { border-color: var(--accent-dim); }
   color: var(--accent);
   font-weight: bold;
 }
+
+.boro-label-neutral {
+  fill: #445;
+}
+
+.boro-legend-neutral {
+  color: #445;
+  font-style: italic;
+}
