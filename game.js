@@ -1302,44 +1302,45 @@ function renderBoroughMap() {
     const w = dom[bName];
     return w ? FAMILY_COLORS[w.colorIndex] : '#555';
   };
-  // Accurate simplified polygon approximations for all 5 NYC boroughs.
-  // ViewBox 280×270, north = top, east = right.
-  // Staten Island is shown neutral (not a playable borough) in grey.
+  // Borough polygons traced from reference map, scaled to 320×305 viewBox.
+  // North = top, East = right. Staten Island = neutral (not playable).
   return `<div class="borough-map-wrap">
-    <svg class="borough-map-svg" viewBox="0 0 280 270" xmlns="http://www.w3.org/2000/svg">
-      <!-- Water background -->
-      <rect width="280" height="270" fill="#0d1a22"/>
+    <svg class="borough-map-svg" viewBox="0 0 320 305" xmlns="http://www.w3.org/2000/svg">
+      <rect width="320" height="305" fill="#0d1822"/>
 
-      <!-- The Bronx -->
+      <!-- The Bronx — upper right, south border along Harlem River -->
       <polygon class="boro-poly"
-        points="112,14 148,6 192,4 232,8 244,34 238,82 196,92 154,88 122,62 114,36"
-        fill="${col('The Bronx')}40" stroke="${col('The Bronx')}" stroke-width="1.5"/>
-      <text class="boro-label" x="180" y="50">The Bronx</text>
+        points="114,14 150,6 198,4 248,8 272,28 265,82 235,100 195,108 158,105 128,88 112,62 108,38"
+        fill="${col('The Bronx')}44" stroke="${col('The Bronx')}" stroke-width="1.5"/>
+      <text class="boro-label" x="192" y="58">The Bronx</text>
 
-      <!-- Manhattan (narrow island, slight tilt) -->
+      <!-- Manhattan — narrow elongated island, slight NNE-SSW tilt -->
       <polygon class="boro-poly"
-        points="106,17 120,13 136,22 140,70 136,132 124,182 108,190 90,165 86,110 92,56"
-        fill="${col('Manhattan')}40" stroke="${col('Manhattan')}" stroke-width="1.5"/>
-      <text class="boro-label" x="113" y="100" text-anchor="middle"
-        transform="rotate(-80 113 100)">Manhattan</text>
+        points="110,16 122,12 136,20 142,58 144,110 138,160 128,188 114,196 100,180 94,145 94,98 100,52"
+        fill="${col('Manhattan')}44" stroke="${col('Manhattan')}" stroke-width="1.5"/>
+      <text class="boro-label" x="119" y="104" text-anchor="middle"
+        transform="rotate(-82 119 104)">Manhattan</text>
 
-      <!-- Queens (largest borough, east of Manhattan & south of Bronx) -->
+      <!-- Queens — largest borough, east of Manhattan, south of Bronx -->
       <polygon class="boro-poly"
-        points="154,86 196,90 238,80 272,68 276,148 260,194 220,206 175,195 158,155 152,108"
-        fill="${col('Queens')}40" stroke="${col('Queens')}" stroke-width="1.5"/>
-      <text class="boro-label" x="218" y="145">Queens</text>
+        points="158,102 196,106 238,98 268,80 295,90 312,118 310,172 290,210 252,228 210,232 172,215 155,172 150,130"
+        fill="${col('Queens')}44" stroke="${col('Queens')}" stroke-width="1.5"/>
+      <text class="boro-label" x="238" y="168">Queens</text>
 
-      <!-- Brooklyn (south of Queens, southeast of Manhattan) -->
+      <!-- Brooklyn — below Manhattan, west of Queens, triangular -->
       <polygon class="boro-poly"
-        points="108,188 148,182 175,193 220,205 215,258 152,268 92,255 82,220"
-        fill="${col('Brooklyn')}40" stroke="${col('Brooklyn')}" stroke-width="1.5"/>
-      <text class="boro-label" x="155" y="232">Brooklyn</text>
+        points="108,193 128,178 172,213 210,230 252,226 248,268 205,282 158,285 112,270 90,245 94,218"
+        fill="${col('Brooklyn')}44" stroke="${col('Brooklyn')}" stroke-width="1.5"/>
+      <text class="boro-label" x="176" y="256">Brooklyn</text>
 
-      <!-- Staten Island (neutral — not a playable borough) -->
+      <!-- Staten Island — separate island, lower left, neutral territory -->
       <polygon class="boro-poly boro-neutral"
-        points="28,220 68,206 98,224 92,266 46,274 18,252"
-        fill="#22282e" stroke="#445" stroke-width="1.2"/>
-      <text class="boro-label boro-label-neutral" x="58" y="243">Staten Island</text>
+        points="24,222 66,208 95,228 88,272 52,284 16,262"
+        fill="#1c2228" stroke="#3a4450" stroke-width="1.2"/>
+      <text class="boro-label boro-label-neutral" x="57" y="250">Staten Island</text>
+
+      <!-- Thin Harlem River gap between Manhattan north tip and Bronx -->
+      <line x1="113" y1="14" x2="108" y2="38" stroke="#0d1822" stroke-width="2.5"/>
     </svg>
     <div class="boro-legend">
       ${orgs.map(o => `<span class="boro-legend-item">
@@ -1347,7 +1348,7 @@ function renderBoroughMap() {
         <span class="${o.isPlayer ? 'boro-legend-player' : ''}">${o.familyName}</span>
       </span>`).join('')}
       <span class="boro-legend-item">
-        <span class="boro-legend-dot" style="background:#445"></span>
+        <span class="boro-legend-dot" style="background:#3a4450"></span>
         <span class="boro-legend-neutral">Staten Is. (uncontested)</span>
       </span>
     </div>
