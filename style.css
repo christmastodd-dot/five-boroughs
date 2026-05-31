@@ -1753,3 +1753,92 @@ select.assign-select:focus { border-color: var(--accent-dim); }
   color: #445;
   font-style: italic;
 }
+
+/* ── MOBILE ──────────────────────────────────────────────── */
+
+/* Use dynamic viewport height where supported so mobile browser
+   chrome (address bar) doesn't push content out of view. */
+@supports (height: 100dvh) {
+  body, .layout { height: 100dvh; }
+}
+
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .layout {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  /* Stack the three columns; let the page scroll instead of each panel. */
+  .panels {
+    display: flex;
+    flex-direction: column;
+    flex: none;
+    overflow: visible;
+  }
+
+  .panel {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    overflow: visible;
+  }
+  .panel:last-child { border-bottom: none; }
+
+  .panel-body {
+    overflow-y: visible;
+    padding: 10px 12px;
+  }
+
+  /* Header: allow wrapping so buttons don't get pushed off-screen. */
+  .header {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 8px 12px;
+  }
+  .header-org { flex-basis: 100%; order: 5; font-size: 11px; }
+  .header-btns { margin-left: auto; }
+  .btn-end-turn { padding: 8px 14px; }
+  .btn-new-game { padding: 8px 10px; }
+
+  /* Recruitment / conflict grids collapse. */
+  .candidate-grid { grid-template-columns: 1fr; }
+  .conflict-actions { grid-template-columns: 1fr; }
+
+  /* Modals: fit the viewport. */
+  .family-modal,
+  .rival-modal {
+    width: 95vw;
+    max-width: 95vw;
+    max-height: 88vh;
+  }
+  .setup-panel { width: 94vw; }
+
+  /* Bigger tap targets for tree-row controls. */
+  .btn { min-height: 32px; padding: 6px 10px; }
+  .sal-input { width: 72px; min-height: 32px; }
+  .capo-assign-select { min-height: 32px; }
+}
+
+@media (max-width: 480px) {
+  .header-title { font-size: 12px; letter-spacing: 2px; }
+  .header-sep { display: none; }
+  .header-date { font-size: 11px; }
+
+  .candidate-stats { grid-template-columns: 1fr; }
+  .biz-name { max-width: none; }
+}
+
+/* On touch devices, suppress :hover affordances that linger after tap. */
+@media (hover: none) {
+  .boro-poly:hover { opacity: 1; }
+  .member-row:hover,
+  .biz-item:hover .biz-row,
+  .pol-item:hover .pol-row-header { background: transparent; }
+}
