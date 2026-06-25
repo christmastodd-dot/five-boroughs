@@ -75,34 +75,34 @@ const MAX_SOLDIERS_PER_CAPO = 5;
 const FINANCE_TEMPLATES = [
   { name:'Bootleg Whiskey Run',
     desc:'A Canadian contact offers a share of a premium whiskey shipment. Half arrives, or it gets intercepted.',
-    minCost:3000, maxCost:8000, minOdds:0.60, maxOdds:0.70, mult:2.2 },
+    minCost:3000, maxCost:8000, minOdds:0.48, maxOdds:0.58, mult:1.7 },
   { name:'Numbers Racket Expansion',
     desc:'Bankroll a new numbers operation on the East Side. The cut is good if the neighborhood cooperates.',
-    minCost:5000, maxCost:12000, minOdds:0.55, maxOdds:0.65, mult:2.5 },
+    minCost:5000, maxCost:12000, minOdds:0.42, maxOdds:0.52, mult:1.9 },
   { name:'Dockworkers Shakedown',
     desc:'Pressure Pier 8 foremen for a cut of unloading fees. Quick money, but they might talk.',
-    minCost:1000, maxCost:4000, minOdds:0.50, maxOdds:0.65, mult:3.0 },
+    minCost:1000, maxCost:4000, minOdds:0.38, maxOdds:0.52, mult:2.2 },
   { name:'Precinct Captain Arrangement',
     desc:'A local captain will look the other way on your operations — if the price is right.',
-    minCost:2000, maxCost:6000, minOdds:0.70, maxOdds:0.82, mult:1.8 },
+    minCost:2000, maxCost:6000, minOdds:0.58, maxOdds:0.70, mult:1.5 },
   { name:'Counterfeit Bond Scheme',
     desc:'A forger has high-quality Treasury bonds. Very high upside. Very high chance of federal interest.',
-    minCost:8000, maxCost:20000, minOdds:0.38, maxOdds:0.52, mult:3.8 },
+    minCost:8000, maxCost:20000, minOdds:0.26, maxOdds:0.40, mult:2.6 },
   { name:'Shylock Portfolio Buyout',
     desc:'A retiring loan shark is selling his book of borrowers at a discount. Steady returns if collected.',
-    minCost:4000, maxCost:10000, minOdds:0.65, maxOdds:0.75, mult:1.9 },
+    minCost:4000, maxCost:10000, minOdds:0.52, maxOdds:0.62, mult:1.55 },
   { name:'Teamsters Dues Skim',
     desc:'Take a quiet cut from a local Teamsters chapter. The rank and file won\'t notice — unless someone talks.',
-    minCost:2000, maxCost:7000, minOdds:0.55, maxOdds:0.68, mult:2.3 },
+    minCost:2000, maxCost:7000, minOdds:0.42, maxOdds:0.55, mult:1.75 },
   { name:'Gambling Den Stake',
     desc:'Finance a backroom casino on 47th Street for a share of nightly action. Location is the risk.',
-    minCost:6000, maxCost:15000, minOdds:0.58, maxOdds:0.72, mult:2.4 },
+    minCost:6000, maxCost:15000, minOdds:0.46, maxOdds:0.58, mult:1.85 },
   { name:'Hijacked Silk Cargo',
     desc:'A truck carrying imported silk has been flagged. Fence it fast before the owner comes looking.',
-    minCost:1500, maxCost:5000, minOdds:0.52, maxOdds:0.64, mult:2.8 },
+    minCost:1500, maxCost:5000, minOdds:0.40, maxOdds:0.52, mult:2.05 },
   { name:'Protection Racket — Theater District',
     desc:'Extend protection services to the 44th Street theater owners. Most will pay without a fuss.',
-    minCost:2500, maxCost:6000, minOdds:0.62, maxOdds:0.72, mult:2.1 }
+    minCost:2500, maxCost:6000, minOdds:0.50, maxOdds:0.60, mult:1.65 }
 ];
 
 const POLITICIAN_NAMES = [
@@ -1658,7 +1658,7 @@ function aiConflict(org, tier, playerDefended, playerNegWith) {
     // Attacker wins — take cash or business
     const useCash = target.businesses.length === 0 || Math.random() < 0.55;
     if (useCash) {
-      const prize  = Math.min(randInt(1000, 5000), Math.max(0, target.cash));
+      const prize  = Math.min(randInt(500, 3000), Math.max(0, target.cash));
       target.cash  = Math.max(0, target.cash - prize);
       org.cash    += prize;
       if (target.isPlayer)
@@ -1929,7 +1929,7 @@ function declineRecruitment(eventId) {
 
 function calcAdjustedOdds(base, cunning) {
   if (cunning == null) return base;
-  return Math.max(0.05, Math.min(0.95, base + (cunning - 50) / 50 * 0.15));
+  return Math.max(0.05, Math.min(0.85, base + (cunning - 50) / 50 * 0.10));
 }
 function calcBribeCost(base, charisma) {
   if (charisma == null) return base;
@@ -1960,8 +1960,8 @@ function resolveFinance(eventId, accept) {
     org.cash -= polFee;
     const complies = Math.random() < polCtrl / 100;
     if (complies) {
-      const bonus = polCtrl / 100 * 0.15;
-      finalOdds   = Math.max(0.05, Math.min(0.95, finalOdds + bonus));
+      const bonus = polCtrl / 100 * 0.10;
+      finalOdds   = Math.max(0.05, Math.min(0.85, finalOdds + bonus));
       polNote     = ` ${selPol.name} came through (+${Math.round(bonus * 100)}% odds).`;
     } else {
       polNote = ` ${selPol.name} didn't cooperate — fee lost.`;
@@ -1987,8 +1987,11 @@ function resolveFinance(eventId, accept) {
       addLog(` – Finance: ${ev.name} succeeded. +${fmt$(profit)}.`);
     }
   } else {
-    ev.outcome = { text: `Failed. Lost ${fmt$(ev.cost)}.${polNote}`, positive: false };
-    addLog(` – Finance: ${ev.name} failed. -${fmt$(ev.cost)}.`);
+    const refund = Math.round(ev.cost * 0.40);
+    org.cash += refund;
+    const lost = ev.cost - refund;
+    ev.outcome = { text: `Failed. Recovered ${fmt$(refund)} from the stake. Net loss: -${fmt$(lost)}.${polNote}`, positive: false };
+    addLog(` – Finance: ${ev.name} failed. -${fmt$(lost)}.`);
   }
   markBusy(assigned);
   ev.state = 'resolved';
@@ -2060,7 +2063,7 @@ function resolveAggress(eventId) {
     shuffle([...rivF]).slice(0, casCt).forEach(c => removeFromOrg(rival, c.id));
     const useCash = rival.businesses.length === 0 || Math.random() < 0.6;
     if (useCash) {
-      const prize = randInt(2000, 8000);
+      const prize = randInt(1500, 5000);
       if (ev.giveCut && sentFighters.length) {
         const totalCut   = Math.round(prize * 0.10);
         const perFighter = Math.round(totalCut / sentFighters.length);
@@ -2767,8 +2770,8 @@ function renderFinanceBody(ev) {
   const selPol    = ev.selectedPolId ? gs.politicians.find(p => p.id === ev.selectedPolId) : null;
   const polCtrl   = selPol ? Math.round(selPol.control[String(org.id)] ?? 0) : 0;
   const polFee    = selPol ? Math.round(400 + (100 - polCtrl) * 12) : 0;
-  const polBonus  = selPol ? polCtrl / 100 * 0.15 : 0;
-  const finalOdds = Math.max(0.05, Math.min(0.95, adjOdds + polBonus));
+  const polBonus  = selPol ? polCtrl / 100 * 0.10 : 0;
+  const finalOdds = Math.max(0.05, Math.min(0.85, adjOdds + polBonus));
   const finalPct  = pct(finalOdds);
   const totalCost = ev.cost + polFee;
   const canAfford = org.cash >= totalCost;
