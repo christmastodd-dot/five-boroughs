@@ -625,6 +625,7 @@ const uiState = {
   expandedBiz: new Set(), expandedPol: new Set(),
   viewingRival:   null,   // rivalId for dashboard modal
   viewingFamily:  null,   // orgId for family profile modal
+  viewingOrgChart: false, // full org chart modal (player's family)
   intelAgents:    {},     // bizId -> charId
   raidMode:       {},     // bizId -> 'sabotage'|'takeover'
   raidFighters:   {},     // bizId -> Set<charId>
@@ -2326,6 +2327,90 @@ function orgTreeHtml(org) {
   return h;
 }
 
+// ── ORG CHART MODAL ───────────────────────────────────────
+
+function orgChartCardHtml(char, org) {
+  const busy       = isCharBusy(char);
+  const imprisoned = isImprisoned(char);
+  const prisonLeft = imprisoned ? char.prisonUntilTurn - gs.turnCount : 0;
+  const capo       = char.role === 'soldier' && char.capoId
+    ? org.roster.find(c => c.id === char.capoId) : null;
+  let statusBadge = '';
+  if (imprisoned)  statusBadge = `<span class="oc-status oc-imprisoned">imprisoned · ${prisonLeft} qtr${prisonLeft !== 1 ? 's' : ''}</span>`;
+  else if (busy)   statusBadge = `<span class="oc-status oc-busy">recovering</span>`;
+  return `<div class="oc-card ${busy ? 'oc-card-busy' : ''} ${imprisoned ? 'oc-card-imprisoned' : ''}">
+    <div class="oc-card-head">
+      <span class="role-tag role-${char.role}">${ROLE_LABEL[char.role].toUpperCase()}</span>
+      <span class="oc-name">${char.name}</span>
+      <span class="oc-age">Age ${char.age}</span>
+      ${statusBadge}
+    </div>
+    <div class="oc-card-meta">
+      <span class="oc-salary">${fmt$(char.salary)}<small>/qtr</small></span>
+      ${capo ? `<span class="oc-under">under ${capo.name}</span>` : ''}
+    </div>
+    <div class="stat-bars oc-stats">${statBarsHtml(char)}</div>
+  </div>`;
+}
+
+function renderOrgChartModal() {
+  const org      = gs.player;
+  const roster   = org.roster;
+  const don      = roster.find(c => c.role === 'don');
+  const con      = roster.find(c => c.role === 'consigliere');
+  const ub       = roster.find(c => c.role === 'underboss');
+  const capos    = roster.filter(c => c.role === 'capo');
+  const soldiers = roster.filter(c => c.role === 'soldier');
+  const color    = FAMILY_COLORS[org.colorIndex];
+
+  const payroll = roster.reduce((s, c) => s + (c.salary || 0), 0);
+
+  const section = (label, cards) => cards.length
+    ? `<div class="oc-section">
+        <div class="oc-section-label">${label}</div>
+        <div class="oc-section-cards">${cards.join('')}</div>
+      </div>` : '';
+
+  const capoBlocks = capos.map(capo => {
+    const mySoldiers = soldiers.filter(s => s.capoId === capo.id);
+    return `<div class="oc-capo-block">
+      ${orgChartCardHtml(capo, org)}
+      ${mySoldiers.length
+        ? `<div class="oc-soldier-list">${mySoldiers.map(s => orgChartCardHtml(s, org)).join('')}</div>`
+        : `<div class="oc-empty">No soldiers under this capo.</div>`}
+    </div>`;
+  }).join('');
+
+  const unassigned = soldiers.filter(s => !capos.some(c => c.id === s.capoId));
+
+  return `<div class="family-modal-overlay" onclick="closeOrgChart()">
+    <div class="family-modal oc-modal" onclick="event.stopPropagation()">
+      <div class="family-modal-header" style="border-bottom-color:${color}">
+        <div>
+          <div class="family-modal-title" style="color:${color}">Organization Chart</div>
+          <div class="family-modal-sub">${org.familyName} Family · ${roster.length} member${roster.length !== 1 ? 's' : ''} · Payroll ${fmt$(payroll)}/qtr</div>
+        </div>
+        <button class="rival-modal-close" onclick="closeOrgChart()">✕</button>
+      </div>
+      <div class="family-modal-body oc-body">
+        ${section('Leadership', [
+          don ? orgChartCardHtml(don, org) : '',
+          con ? orgChartCardHtml(con, org) : '',
+          ub  ? orgChartCardHtml(ub,  org) : ''
+        ].filter(Boolean))}
+        ${capos.length
+          ? `<div class="oc-section">
+              <div class="oc-section-label">Capos &amp; Crews</div>
+              ${capoBlocks}
+            </div>`
+          : ''}
+        ${section('Unassigned Soldiers', unassigned.map(s => orgChartCardHtml(s, org)))}
+        ${roster.length === 0 ? `<div class="oc-empty">No members in the family.</div>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
 // ── RIVAL MODAL ───────────────────────────────────────────
 
 function openRivalModal(rivalId) {
@@ -2459,6 +2544,8 @@ function executeRaid(bizId) {
 
 function openFamilyModal(orgId)  { uiState.viewingFamily = orgId;   renderPreserveScroll(); }
 function closeFamilyModal()      { uiState.viewingFamily = null;    renderPreserveScroll(); }
+function openOrgChart()          { uiState.viewingOrgChart = true;  renderPreserveScroll(); }
+function closeOrgChart()         { uiState.viewingOrgChart = false; renderPreserveScroll(); }
 
 function renderFamilyModal() {
   const orgId = uiState.viewingFamily;
@@ -3028,6 +3115,7 @@ function render() {
     <span class="header-org">${org.name} &mdash; ${org.borough}</span>
     <div class="header-btns">
       <button id="music-btn" class="btn-music" onclick="toggleMusic()">♪</button>
+      <button class="btn-new-game" onclick="openOrgChart()">Org Chart</button>
       <button class="btn-new-game" onclick="newGame()">New Game</button>
       <button class="btn-end-turn" onclick="advanceTurn()" ${!resolved || gs.gameOver ? 'disabled' : ''}>
         ${resolved ? 'End Turn →' : `${pending} Event${pending !== 1 ? 's' : ''} Pending`}
@@ -3150,7 +3238,8 @@ function render() {
 </div>
 ${gs.gameOver ? renderEndScreen() : ''}
 ${uiState.viewingRival  ? renderRivalModal()  : ''}
-${uiState.viewingFamily ? renderFamilyModal() : ''}`;
+${uiState.viewingFamily ? renderFamilyModal() : ''}
+${uiState.viewingOrgChart ? renderOrgChartModal() : ''}`;
 }
 
 // ── INIT ──────────────────────────────────────────────────

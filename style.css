@@ -1754,6 +1754,105 @@ select.assign-select:focus { border-color: var(--accent-dim); }
   font-style: italic;
 }
 
+/* ── ORG CHART MODAL ─────────────────────────────────────── */
+
+.oc-modal { width: min(640px, 94vw); max-height: 86vh; }
+
+.oc-body { padding: 16px; }
+
+.oc-section { margin-bottom: 18px; }
+.oc-section:last-child { margin-bottom: 0; }
+
+.oc-section-label {
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.75;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+  margin-bottom: 10px;
+}
+
+.oc-section-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.oc-capo-block {
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--border-sub);
+}
+.oc-capo-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+.oc-soldier-list {
+  margin: 8px 0 0 18px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border-sub);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.oc-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 8px 10px;
+}
+.oc-card-busy      { opacity: 0.7; }
+.oc-card-imprisoned { opacity: 0.55; }
+
+.oc-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.oc-name { font-weight: bold; color: var(--text); flex: 1; min-width: 0; }
+.oc-age  { font-size: 10px; color: var(--text-muted); }
+
+.oc-status {
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+.oc-busy       { background: rgba(122,96,80,0.25); color: #b59078; }
+.oc-imprisoned { background: rgba(122,56,56,0.30); color: #c98a8a; }
+
+.oc-card-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.oc-salary { color: var(--text); }
+.oc-salary small { color: var(--text-muted); margin-left: 1px; }
+.oc-under  { font-style: italic; }
+
+.oc-stats { margin-top: 4px; }
+
+.oc-empty {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+  padding: 6px 0;
+}
+
+@media (max-width: 480px) {
+  .oc-soldier-list { margin-left: 8px; padding-left: 6px; }
+  .oc-card-head { gap: 6px; }
+  .oc-name { width: 100%; }
+}
+
 /* ── MOBILE ──────────────────────────────────────────────── */
 
 /* Use dynamic viewport height where supported so mobile browser
